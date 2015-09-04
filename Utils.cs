@@ -2,7 +2,6 @@
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
 
 namespace IDAProSelector
 {
@@ -14,17 +13,24 @@ namespace IDAProSelector
 
     public static class Utils
     {
+        public static string GetWrapperDirectory()
+        {
+            var exeFile = System.Reflection.Assembly.GetEntryAssembly().Location;
+            return Path.GetDirectoryName(exeFile);
+        }
+
         public static bool CheckInstallation()
         {
-            var currentDir = Environment.CurrentDirectory;
-            var files = Directory.GetFiles(currentDir).Select(file => new FileInfo(file).Name).ToList();
+            var fileList = Directory.GetFiles(GetWrapperDirectory());
+            var files = fileList.Select(file => new FileInfo(file).Name).ToList();
             return files.Contains("idaq.exe") && files.Contains("idaq64.exe");
         }
 
         public static void RunIDA(FileArchitecture arch, bool asAdmin, string fileName = null)
         {
             var exeFileName = (arch == FileArchitecture.Pe32 ? "idaq.exe" : "idaq64.exe");
-            var info = new ProcessStartInfo(exeFileName);
+            var exePath = Path.Combine(GetWrapperDirectory(), exeFileName);
+            var info = new ProcessStartInfo(exePath);
             if (fileName != null) {
                 info.Arguments = $"\"{fileName}\"";
             }
