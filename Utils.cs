@@ -1,12 +1,40 @@
-﻿using System.IO;
+﻿using System;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace IDAProSelector
 {
-    public enum FileArchitecture { Pe32 = 0x10b, Pe32P = 0x20b }
+    public enum FileArchitecture
+    {
+        Pe32 = 0x10b,
+        Pe32P = 0x20b
+    }
 
     public static class Utils
     {
+        public static bool CheckInstallation()
+        {
+            var currentDir = Environment.CurrentDirectory;
+            var files = Directory.GetFiles(currentDir).Select(file => new FileInfo(file).Name).ToList();
+            return files.Contains("idaq.exe") && files.Contains("idaq64.exe");
+        }
+
+        public static void RunIDA(FileArchitecture arch, bool asAdmin, string fileName = null)
+        {
+            var exeFileName = (arch == FileArchitecture.Pe32 ? "idaq.exe" : "idaq64.exe");
+            var info = new ProcessStartInfo(exeFileName);
+            if (fileName != null) {
+                info.Arguments = $"\"{fileName}\"";
+            }
+            if (asAdmin) {
+                info.Verb = "runas";
+            }
+            Process.Start(info);
+            Environment.Exit(0);
+        }
+
 
         public static bool IsExeFile(string path)
         {
