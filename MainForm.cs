@@ -64,9 +64,10 @@ namespace IDAProSelector
         {
             var dialog = new OpenFileDialog();
             var result = dialog.ShowDialog();
-            if (result == DialogResult.OK) {
-                tb_SelectedFileName.Text = dialog.FileName;
+            if (result != DialogResult.OK) {
+                return;
             }
+            tb_SelectedFileName.Text = dialog.FileName;
             var arch = Utils.DetectExecutableArchicture(dialog.FileName);
             RunIDA(arch == FileArchitecture.Pe32, dialog.FileName);
         }
