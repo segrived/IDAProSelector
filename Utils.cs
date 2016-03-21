@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -15,20 +16,45 @@ namespace IDAProSelector
     {
         public static string GetWrapperDirectory()
         {
-            var exeFile = System.Reflection.Assembly.GetEntryAssembly().Location;
+            string exeFile = System.Reflection.Assembly.GetEntryAssembly().Location;
             return Path.GetDirectoryName(exeFile);
         }
 
         public static bool CheckInstallation()
         {
-            var fileList = Directory.GetFiles(GetWrapperDirectory());
-            var files = fileList.Select(file => new FileInfo(file).Name).ToList();
+            string[] fileList = Directory.GetFiles(GetWrapperDirectory());
+            List<string> files = fileList.Select(file => new FileInfo(file).Name).ToList();
             return files.Contains("idaq.exe") && files.Contains("idaq64.exe");
         }
 
-        public static void RunIDA(FileArchitecture arch, bool asAdmin, string fileName = null)
-        {
-            var exeFileName = (arch == FileArchitecture.Pe32 ? "idaq.exe" : "idaq64.exe");
+        public static Dictionary<string, string> ReadEnvData() {
+            var envVariablesDict = new Dictionary<string, string>();
+            string confFile = Path.Combine(GetWrapperDirectory(), "wrapper_env.conf");
+
+            if (!File.Exists(confFile)) {
+                return envVariablesDict;
+            }
+
+            foreach (string line in File.ReadLines(confFile)) {
+                int eqCharIndex = line.IndexOf("=", StringComparison.Ordinal);
+                if (eqCharIndex == -1) {
+                    continue;
+                }
+                var startIndex = line.Substring(0, eqCharIndex);
+                var endIndex = line.Substring(eqCharIndex + 1);
+                envVariablesDict.Add(startIndex, endIndex);
+            }
+            return envVariablesDict;
+        } 
+
+        public static void RunIDA(FileArchitecture arch, bool asAdmin, string fileName = null) {
+            foreach (var kvp in ReadEnvData()) {
+                Environment.SetEnvironmentVariable(kvp.Key, 
+                    Environment.ExpandEnvironmentVariables(kvp.Value),
+                    EnvironmentVariableTarget.Process);
+            }
+
+            var exeFileName = arch == FileArchitecture.Pe32 ? "idaq.exe" : "idaq64.exe";
             var exePath = Path.Combine(GetWrapperDirectory(), exeFileName);
             var info = new ProcessStartInfo(exePath);
             if (fileName != null) {
